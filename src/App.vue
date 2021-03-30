@@ -20,6 +20,14 @@
               />
             </div>
           </div>
+
+          <div v-if="allCoins">
+            <div v-for="(item, key) in filterCoins" :key="key">
+              <div v-if="key < 5">
+                 {{ item }}
+              </div>
+            </div>
+          </div>
         </div>
         <button
           @click="add"
@@ -89,7 +97,12 @@
           {{ sel.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10" v-for="(bar, key) in normalizeGraph()" :key="key" :style="{height: `${bar}%`}"></div>
+          <div
+            class="bg-purple-800 border w-10"
+            v-for="(bar, key) in normalizeGraph()"
+            :key="key"
+            :style="{ height: `${bar}%` }"
+          ></div>
         </div>
         <button
           @click="sel = null"
@@ -132,10 +145,23 @@ export default {
       ticker: "",
       tickers: [],
       sel: null,
-      graph: []
+      graph: [],
+      allCoins: null,
+      md: '',
+      datas: [
+        {name: 'hello', age: 25},
+        {name: 'poxos', age: 65},
+        {name: 'aram', age: 55},
+      ]
     };
   },
-
+  computed: {
+    filterCoins() {
+      return Object.keys(this.allCoins).filter(item => {
+        return this.allCoins[item].Symbol.toUpperCase().includes(this.ticker.toUpperCase())
+      });
+    }
+  },
   methods: {
     add() {
       const currentTicker = {
@@ -150,15 +176,12 @@ export default {
         );
         const res = await f.json();
 
-        this.tickers.find(t => t.name === currentTicker.name).price = res.USD
-          ? res.USD.toFixed(2)
-          : res.USD.toPrecision(2);
-          if (this.sel?.name === currentTicker.name) {
-        this.graph.push(res.USD);
-      }
+        this.tickers.find(t => t.name === currentTicker.name).price =
+          res.USD > 1 ? res.USD.toFixed(2) : res.USD?.toPrecision(2);
+        if (this.sel?.name === currentTicker.name) {
+          this.graph.push(res.USD);
+        }
       }, 3000);
- 
-     
 
       this.ticker = "";
     },
@@ -168,19 +191,23 @@ export default {
     },
 
     normalizeGraph() {
-      let max = Math.max(...this.graph)
-      let min = Math.min(...this.graph)
+      let max = Math.max(...this.graph);
+      let min = Math.min(...this.graph);
 
-      return this.graph.map( 
-         price => 5 + ( (price - min) * 95) / (max - min)
-      )
+      return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
     },
 
     select(ticker) {
-      this.sel = ticker
-      this.graph = []
+      this.sel = ticker;
+      this.graph = [];
     }
-
+  },
+  async created() {
+    const fetching = await fetch(
+      "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
+    );
+    const js = await fetching.json();
+    this.allCoins = js.Data;
   }
 };
 </script>
